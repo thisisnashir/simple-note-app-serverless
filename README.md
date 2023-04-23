@@ -16,7 +16,7 @@ serverless --version
 
 so our node version is:  `14.16.0` and serverless framework version: `2.72.3`
 
-now lets create a user with `administrator access` (`admin group`) and create an acess for `cli`.
+now lets create a user with `administrator access` (`admin group`) and create an acess key for `cli` activity.
 
 Now from the official [serverless](https://www.serverless.com/) website, we go through the documenation to get the command for `AWS - Config Credentials` which will setup our default cli credential for aws.
 
@@ -29,3 +29,21 @@ Now lets create a aws-nodejs serverless project from template,
 ```bash
 serverless create -t aws-nodejs
 ```
+we create a new `package.json` file for the packages that we will be using later on.
+
+```bash
+npm init -y
+```
+
+Now we modify to create our `createNote` lambda function that return a success code and a dummy response that a note has been created. 
+
+After that, we modify our `serverless.yml` accordingly. We also use it to create the api-gateway (with  the method and the path) that invokes the lambda function (as an event/trigger)
+
+Finally, we deploy our lambda function using the following command:
+
+```bash
+serverless deploy
+```
+
+now after `serverless` framework finishes, it shows the link to access our api-gateway and invoke the lambda.
+we make a `post` reaction to the url and we get our dummy response that a note has been created.
