@@ -86,4 +86,19 @@ So all the lambda function are created with in the same `.js` file, like in our 
 
 ![visual representation](./readmeResources/sc-003.jpg)
 
+## Lets add dynamoDb table to our implementation
 
+Now we add our dynamoDb table using `cloudformation` template inside serverless framework.
+We can simply google `dynamodb cloudformation` to get the proper syntax.
+
+In our template, we mention 
+
+`BillingMode` (`PAY_PER_REQUEST`), `AttributeDefinitions` and `KeySchema` (the last 2 are required).
+We could give it the table a name using `TableName` but we wanted to see what name our serverless framework gives to the table if we don't explicitly mention it.
+
+And we find out the name is :  `<service>-<stage>-<LogicalNameOfTable>-<random_gibberish>`
+(`notes-api-dev-notesTable-454H6S....`)
+
+So for our sanity's sake, lets give it a simple name: `notesTable`
+
+Now lets deploy again and we see our `notesTable` is created with one attribute which is the `hashkey` (partition key / primary id etc) and its `On-demand(PAY_PER_REQUEST)` modeled.
