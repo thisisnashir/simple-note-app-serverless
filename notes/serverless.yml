@@ -9,11 +9,29 @@ provider:
   region: ap-south-1
 
 functions:
-  hello:
+  createNote:
     handler: handler.createNote
     events:
       - http:
           method: post
+          path: notes
+  updateNote:
+    handler: handler.updateNote
+    events:
+      - http:
+          method: put
+          path: notes/{id}
+  deleteNote:
+    handler: handler.deleteNote
+    events:
+      - http:
+          method: delete
+          path: notes/{id}
+  getAllNotes:
+    handler: handler.getAllNotes
+    events:
+      - http:
+          method: get
           path: notes
 
 # you can add CloudFormation resource templates here

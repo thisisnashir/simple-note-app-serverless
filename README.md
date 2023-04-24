@@ -47,3 +47,12 @@ serverless deploy
 
 now after `serverless` framework finishes, it shows the link to access our api-gateway and invoke the lambda.
 we make a `post` reaction to the url and we get our dummy response that a note has been created.
+
+Now similarly we user `serverless.yml` to create the other dummy endpoints and invoke the related dummy lambda function and it all seems to work now!
+
+The things to be noted here are:
+
+1. `path: notes/{id}` is how you define a dynamic path with a `pathParameter`.
+2. `event.pathParameters.id` is how you access the path-parameter in your lambda function.
+
+
