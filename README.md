@@ -56,3 +56,34 @@ The things to be noted here are:
 2. `event.pathParameters.id` is how you access the path-parameter in your lambda function.
 
 
+## How our console looks with the resources ? 
+
+Okay, so now if we traverse our aws console to observe the resources that was created and managed for us:
+
+1. We have a `Api-gateway` created for us with the name `dev-notes-api`. So serverless took the `stage` name and our `service`name and appended them with a `-` to name our api-gateway.
+
+2. In the `s3 bucket` we also see a s3 bucket was created for storing the `.zip` file of our lambda function.
+
+it was named : `notes-api-dev-serverlessdeploymentbucket-<somegibberishvalue>`
+
+so first our `service` name and then our `stage` name and then the suffix `serverlessdeploymentbucket` and some gibberish value.
+
+3. our lambda functions are named - `<service>-<stage>-<function_name>`
+
+4. We see our path with the appropriate method were created and they invoke associated lambda function in a `proxy-integration` way.
+
+![proxy integration](./readmeResources/sc-001.JPG)
+
+Which means, our entire request is passed to our lambda function (api-gateway is doing no filtering and passing on the entire payload like a proxy). And the lambda response is similarly passed to the client as it was without any moderation by api-gateway.
+
+5. Now although they invoke their own lambda function (createNote,deleteNote etc.) if we click on the lambda function (from the api-gateway UI), we taken to the same `handler.js` file where all the lambda function resides. 
+
+![lambda code](./readmeResources/sc-002.JPG)
+
+So all the lambda function are created with in the same `.js` file, like in our local machine.
+
+6. We also notice the graphical representation that the api-gateway is triggering this lambda function.
+
+![visual representation](./readmeResources/sc-003.jpg)
+
+
