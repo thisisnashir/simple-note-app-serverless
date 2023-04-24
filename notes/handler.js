@@ -1,10 +1,34 @@
 'use strict';
 
-module.exports.createNote = async (event) => {
-  return {
-    statusCode: 201,
-    body: JSON.stringify("A new note has been created!")
-  };
+const dynamoDb = require("aws-sdk/clients/dynamodb");
+const documentClient = new dynamoDb.DocumentClient({region: 'ap-south-1'});
+
+module.exports.createNote = async (event,context,cb) => {
+  try{
+    let data = JSON.parse(event.body);
+    let params = {
+      TableName: "notesTable",
+      Item: {
+        notesId: data.id,
+        title: data.title,
+        body: data.body
+      },
+      ConditionExpression: "attribute_not_exists(notesId)"
+    }
+
+    await documentClient.put(params).promise();
+
+    cb(null,{
+      statusCode: 201,
+      body: JSON.stringify(`A new note has been created with id ${data.id}!`)
+    });
+  }
+  catch(err){
+    cb(null,
+      {
+        statusCode: 500,
+        body: err.message});
+  }
 };
 
 module.exports.updateNote = async (event) => {

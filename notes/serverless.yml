@@ -7,6 +7,11 @@ provider:
   lambdaHashingVersion: 20201221
   stage: dev
   region: ap-south-1
+  iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:PutItem
+        Resource: !GetAtt notesTable.Arn
 
 functions:
   createNote:

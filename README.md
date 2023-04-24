@@ -102,3 +102,67 @@ And we find out the name is :  `<service>-<stage>-<LogicalNameOfTable>-<random_g
 So for our sanity's sake, lets give it a simple name: `notesTable`
 
 Now lets deploy again and we see our `notesTable` is created with one attribute which is the `hashkey` (partition key / primary id etc) and its `On-demand(PAY_PER_REQUEST)` modeled.
+
+
+## lets use the dynamoDb table inside our lambda function
+
+We are going to use the dynamoDb table inside our lambda function. And for that we are going to use the `aws-sdk`. For documentation, we just google `dynamodb javascript sdk`. 
+
+Now in the documentation, we can see how to interact with dynamoDb using `aws-sdk` for javascript and instance that is used is `AWS.DynamoDB` but instead of that we are going to use the simpler one `AWS.DynamoDB.DocumentClient`
+
+
+Now first, we install our aws-sdk (we are going to use the sdk version 2 for this)
+
+```bash
+npm install aws-sdk@2
+```
+
+
+Then in our lambda file (above code for optimization purpose), we include the instances for communicating with the dynamodb table.
+
+```js
+const dynamoDb = require("aws-sdk/clients/dynamodb");
+const documentClient = new dynamoDb.DocumentClient({region: 'ap-south-1'});
+```
+
+
+After that, we make the following changes for successful data entry.
+
+1. we parse the event-body by `JSON.parse(event.body)` to get our post-data.
+2. we add our context (`context`) and callback (`cb`) parameter too in our `async` lambda.
+3. we add a try-catch block for using `await` with `promise`.
+4. we `ConditionExpression: "attribute_not_exists(notesId)"` so that dynamodb first checks for the id that is to be created to make sure the item does not already exist.
+
+Now we deploy our app using `sls deploy` (sls is short-form of serverless)
+
+Now we post to our endpoint with the following json data:
+
+```json
+{
+    "id": "11ab12",
+    "title": "my first post",
+    "body": "this is my post body"
+}
+```
+
+but we receive an error.
+
+```
+User: arn:aws:sts: : 6517....:assumed-role/notes-api-dev-ap-south-1-lambdaRole/notes-api-dev-createNote is not authorized to perform: dynamodb:PutItem on resource: arn:aws:dynamodb:ap-south-1: 6651789...4:table/notesTable because no identity-based policy allows the dynamodb:PutItem action
+```
+
+So we facing a permission related error. We need to give our lambda function the permission to `putItem` in the dynamoDb table.
+
+Now we can give IAM permission at the top level (so each of our lambda function get the same permission)
+
+Lets add the `PutItem` permission now. We have to mention the resource Arn. For that, we can use the `intrinsic function` (`Fn::GetAtt`).
+
+(google `dynamodb cloudformation` and go to `return value` section)
+
+![Arn of our dynamoDb table](./readmeResources/sc-004.JPG)
+
+so our resource Arn section looks: `Resource: !GetAtt notesTable.Arn`
+
+Now if we deploy our app again and make the post request, we see it works!
+
+And if we check our dynamoDb table, the entry should be there. Now if we make the request a 2nd time with the same object, we should see `The conditional request failed` error as we had put the `ConditionExpression` in our code.
