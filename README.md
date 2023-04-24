@@ -166,3 +166,37 @@ so our resource Arn section looks: `Resource: !GetAtt notesTable.Arn`
 Now if we deploy our app again and make the post request, we see it works!
 
 And if we check our dynamoDb table, the entry should be there. Now if we make the request a 2nd time with the same object, we should see `The conditional request failed` error as we had put the `ConditionExpression` in our code.
+
+### using serverless-iam-roles-per-function plugin
+
+Using iam roles at the top level which is applied for each lambda function is okay in some scenario but no in this one. We gave all our lambda function `put` permission to our dynamoDb table. But what about our delete lambda function? it need delete permission. But if we apply it in the top level then our create lambda function will get the delete permission too.
+
+So we should give each function least amount of privilege(permission) to do the task it needs.
+
+So to apply function level permission, we need a plugin called `serverless-iam-roles-per-function` and we are going to install it as a dev-dependency (wont be install during production/deployment)
+
+```bash
+npm i --save-dev serverless-iam-roles-per-function
+```
+
+In the `package.json` file, it should be added as our dev-dependency.
+
+```json
+ "devDependencies": {
+    "serverless-iam-roles-per-function": "^3.2.0"
+  }
+```
+
+Now in our `serverless.yml` file, we add our plugin section and our `serverless-iam-roles-per-function` plugin.
+
+```yml
+plugins:
+  - serverless-iam-roles-per-function 
+```
+
+now we can take the `iamRoleStatements` section from the top level and use it in the function level.
+
+we have now added our `PutItem` permission at the `createNote` lambda function level.
+
+lets deploy again to see if our post endpoint still works! and we see it does!
+

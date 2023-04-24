@@ -7,14 +7,14 @@ provider:
   lambdaHashingVersion: 20201221
   stage: dev
   region: ap-south-1
-  iamRoleStatements:
+
+functions:
+  createNote:
+    iamRoleStatements:
       - Effect: Allow
         Action:
           - dynamodb:PutItem
         Resource: !GetAtt notesTable.Arn
-
-functions:
-  createNote:
     handler: handler.createNote
     events:
       - http:
@@ -38,6 +38,9 @@ functions:
       - http:
           method: get
           path: notes
+
+plugins:
+  - serverless-iam-roles-per-function 
 
 # you can add CloudFormation resource templates here
 resources:
