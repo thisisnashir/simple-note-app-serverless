@@ -36,6 +36,13 @@ functions:
           method: put
           path: notes/{id}
   deleteNote:
+    environment:
+      NOTES_TABLE_NAME: !Ref notesTable
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:DeleteItem
+        Resource: !GetAtt notesTable.Arn
     handler: handler.deleteNote
     events:
       - http:

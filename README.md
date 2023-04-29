@@ -230,6 +230,12 @@ Now finally, lets check if the conditional expression works! Try to update data 
 
 ### Fixing deleteNote endpoint
 
+So now we want to make `deleteNote` endpoint functional and the steps for that are pretty much similar to the one we have done.
+
+1. We add environment variable to our `deleteNote` function so we can get our table name with out hardcoding it.
+2. We add `iamRoleStatements` so our table has the permission to delete items.
+3. We use the `documentClient` to delete our item
+
 
 ### Fixing getAllNote Endpoint
 
