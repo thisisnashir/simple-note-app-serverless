@@ -23,7 +23,7 @@ module.exports.createNote = async (event, context, cb) => {
 
     await documentClient.put(params).promise();
 
-    cb(null, send(201, {message: `A new note has been created with id ${data.id}!`}));
+    cb(null, send(201, { message: `A new note has been created with id ${data.id}!` }));
   }
   catch (err) {
     cb(null, send(500, err.message));
@@ -70,7 +70,7 @@ module.exports.deleteNote = async (event, context, cb) => {
       ConditionExpression: "attribute_exists(notesId)"
     };
     await documentClient.delete(params).promise();
-    cb(null, send(200, {message: `The note with id: ${notesId} has been deleted!`}));
+    cb(null, send(200, { message: `The note with id: ${notesId} has been deleted!` }));
   }
   catch (err) {
     cb(null, send(500, err.message));
@@ -78,9 +78,14 @@ module.exports.deleteNote = async (event, context, cb) => {
 
 };
 
-module.exports.getAllNotes = async (event) => {
-  return {
-    statusCode: 200,
-    body: JSON.stringify("Here are all the notes you requested!")
-  };
+module.exports.getAllNotes = async (event, context, cb) => {
+  try {
+    const params = {
+      TableName: NOTES_TABLE_NAME
+    };
+    const notes = await documentClient.scan(params).promise();
+    cb(null, send(200, notes));
+  } catch (err) {
+    cb(null, send(500, err.message));
+  }
 };

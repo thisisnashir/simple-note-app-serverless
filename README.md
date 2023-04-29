@@ -1,4 +1,4 @@
-# <u>Simple Notes App</u>
+# Simple Notes App
 
 We are going to create a simple note application that performs create, read, update and delete operation. We are going to use aws-serverless feature for this.
 
@@ -56,7 +56,8 @@ The things to be noted here are:
 2. `event.pathParameters.id` is how you access the path-parameter in your lambda function.
 
 
-## <u>How our console looks with the resources ?</u>
+## How our console looks with the resources ?
+___
 
 Okay, so now if we traverse our aws console to observe the resources that was created and managed for us:
 
@@ -86,7 +87,8 @@ So all the lambda function are created with in the same `.js` file, like in our 
 
 ![visual representation](./readmeResources/sc-003.jpg)
 
-## <u>Lets add dynamoDb table to our implementation</u>
+## Lets add dynamoDb table to our implementation
+___
 
 Now we add our dynamoDb table using `cloudformation` template inside serverless framework.
 We can simply google `dynamodb cloudformation` to get the proper syntax.
@@ -104,7 +106,8 @@ So for our sanity's sake, lets give it a simple name: `notesTable`
 Now lets deploy again and we see our `notesTable` is created with one attribute which is the `hashkey` (partition key / primary id etc) and its `On-demand(PAY_PER_REQUEST)` modeled.
 
 
-### <u>lets use the dynamoDb table inside our lambda function</u>
+### lets use the dynamoDb table inside our lambda function
+___
 
 We are going to use the dynamoDb table inside our lambda function. And for that we are going to use the `aws-sdk`. For documentation, we just google `dynamodb javascript sdk`. 
 
@@ -167,7 +170,8 @@ Now if we deploy our app again and make the post request, we see it works!
 
 And if we check our dynamoDb table, the entry should be there. Now if we make the request a 2nd time with the same object, we should see `The conditional request failed` error as we had put the `ConditionExpression` in our code.
 
-### <u>using serverless-iam-roles-per-function plugin</u>
+### using serverless-iam-roles-per-function plugin
+___
 
 Using iam roles at the top level which is applied for each lambda function is okay in some scenario but no in this one. We gave all our lambda function `put` permission to our dynamoDb table. But what about our delete lambda function? it need delete permission. But if we apply it in the top level then our create lambda function will get the delete permission too.
 
@@ -202,7 +206,8 @@ lets deploy again to see if our post endpoint still works! and we see it does!
 
 
 
-### <u>Fix our updateNote lambda function</u>
+### Fix our updateNote lambda function
+___
 
 So far our updateNote lambda function just returns a dummy message that it has updated the table with the appropriate data.
 
@@ -228,7 +233,8 @@ Also we are now adding a method `send` for creating the return object.
 Now finally, lets check if the conditional expression works! Try to update data for a non-existing data by requesting to path: (`..\11ab14`) and see the error `"The conditional request failed"`. So everything is working as we wished.
 
 
-### Fixing deleteNote endpoint
+### Fixing deleteNote endpoint 
+___
 
 So now we want to make `deleteNote` endpoint functional and the steps for that are pretty much similar to the one we have done.
 
@@ -237,8 +243,16 @@ So now we want to make `deleteNote` endpoint functional and the steps for that a
 3. We use the `documentClient` to delete our item
 
 
-### Fixing getAllNote Endpoint
+### Fixing getAllNote Endpoint 
+___
 
+Now fixing the `getAllNotes` endpoint is probably the simplest of all. We need to scan the database for all notes. And For that,
+
+1. We add environment variable for the table name
+2. We add the `Scan` IAM permission for the table
+3. We scan the table (only need the table name and nothing else) and return the result
+
+(note: when scanning the database there is a limit to how much data that is scanned and fetched. If that limit is reached, dynamoDb sends an additional parameter that works as an offset which you can use as the start point for the next scan operation)
 
 ### Optimization
 
