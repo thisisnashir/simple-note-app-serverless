@@ -1,4 +1,4 @@
-# Simple Notes App
+# <u>Simple Notes App</u>
 
 We are going to create a simple note application that performs create, read, update and delete operation. We are going to use aws-serverless feature for this.
 
@@ -6,7 +6,7 @@ And for infrastructure as code, we are going to use `serverless` framework and `
 
 So lets install our node version `16.14.0` (which will be used to build this project).
 
-```bash
+```console
 nvm install 14.16.0
 nvm use 14.16.0
 node --version
@@ -20,18 +20,18 @@ now lets create a user with `administrator access` (`admin group`) and create an
 
 Now from the official [serverless](https://www.serverless.com/) website, we go through the documenation to get the command for `AWS - Config Credentials` which will setup our default cli credential for aws.
 
-```bash
+```console
 serverless config credentials --provider aws --key <access_key> --secret <access_secret>
 ```
 
 Now lets create a aws-nodejs serverless project from template,
 
-```bash
+```console
 serverless create -t aws-nodejs
 ```
 we create a new `package.json` file for the packages that we will be using later on.
 
-```bash
+```console
 npm init -y
 ```
 
@@ -41,7 +41,7 @@ After that, we modify our `serverless.yml` accordingly. We also use it to create
 
 Finally, we deploy our lambda function using the following command:
 
-```bash
+```console
 serverless deploy
 ```
 
@@ -56,7 +56,7 @@ The things to be noted here are:
 2. `event.pathParameters.id` is how you access the path-parameter in your lambda function.
 
 
-## How our console looks with the resources ? 
+## <u>How our console looks with the resources ?</u>
 
 Okay, so now if we traverse our aws console to observe the resources that was created and managed for us:
 
@@ -86,7 +86,7 @@ So all the lambda function are created with in the same `.js` file, like in our 
 
 ![visual representation](./readmeResources/sc-003.jpg)
 
-## Lets add dynamoDb table to our implementation
+## <u>Lets add dynamoDb table to our implementation</u>
 
 Now we add our dynamoDb table using `cloudformation` template inside serverless framework.
 We can simply google `dynamodb cloudformation` to get the proper syntax.
@@ -104,7 +104,7 @@ So for our sanity's sake, lets give it a simple name: `notesTable`
 Now lets deploy again and we see our `notesTable` is created with one attribute which is the `hashkey` (partition key / primary id etc) and its `On-demand(PAY_PER_REQUEST)` modeled.
 
 
-## lets use the dynamoDb table inside our lambda function
+### <u>lets use the dynamoDb table inside our lambda function</u>
 
 We are going to use the dynamoDb table inside our lambda function. And for that we are going to use the `aws-sdk`. For documentation, we just google `dynamodb javascript sdk`. 
 
@@ -113,7 +113,7 @@ Now in the documentation, we can see how to interact with dynamoDb using `aws-sd
 
 Now first, we install our aws-sdk (we are going to use the sdk version 2 for this)
 
-```bash
+```console
 npm install aws-sdk@2
 ```
 
@@ -167,7 +167,7 @@ Now if we deploy our app again and make the post request, we see it works!
 
 And if we check our dynamoDb table, the entry should be there. Now if we make the request a 2nd time with the same object, we should see `The conditional request failed` error as we had put the `ConditionExpression` in our code.
 
-### using serverless-iam-roles-per-function plugin
+### <u>using serverless-iam-roles-per-function plugin</u>
 
 Using iam roles at the top level which is applied for each lambda function is okay in some scenario but no in this one. We gave all our lambda function `put` permission to our dynamoDb table. But what about our delete lambda function? it need delete permission. But if we apply it in the top level then our create lambda function will get the delete permission too.
 
@@ -175,7 +175,7 @@ So we should give each function least amount of privilege(permission) to do the 
 
 So to apply function level permission, we need a plugin called `serverless-iam-roles-per-function` and we are going to install it as a dev-dependency (wont be install during production/deployment)
 
-```bash
+```console
 npm i --save-dev serverless-iam-roles-per-function
 ```
 
@@ -200,3 +200,41 @@ we have now added our `PutItem` permission at the `createNote` lambda function l
 
 lets deploy again to see if our post endpoint still works! and we see it does!
 
+
+
+### <u>Fix our updateNote lambda function</u>
+
+So far our updateNote lambda function just returns a dummy message that it has updated the table with the appropriate data.
+
+So lets make actual update to the dynamoDb table. But first, we need to give our lambda function the `UpdateItem` permission.
+
+Now we also do not want to hard code the dynamoDb table name, like we did in the `createNote` function. Instead we can make use of `Environment` variables. We use intrinsic function to get the created table name (`ref`, which returns the table name as we can see in the documentation or in the above posted screenshot) and then store it in an environment variable to be used inside our lambda function.
+
+And we add and use the environment variable similarly inside the `createNote` function as well.
+
+Now for `updateNote`, instead of return a single string as a JSON (using JSON.stringify()) we are sending back the entire updated item as a response when a valid update operation is done.
+
+Now lets try to update the item by making a put request at the proper path(`.../11ab12`) with the following data:
+
+```json
+{
+    "title": "my first post HAS BEEN UPDATED!",
+    "body": "this is my post body (edited)"
+}
+```
+
+Also we are now adding a method `send` for creating the return object.
+
+Now finally, lets check if the conditional expression works! Try to update data for a non-existing data by requesting to path: (`..\11ab14`) and see the error `"The conditional request failed"`. So everything is working as we wished.
+
+
+### Fixing deleteNote endpoint
+
+
+### Fixing getAllNote Endpoint
+
+
+### Optimization
+
+
+### Add Authorization
