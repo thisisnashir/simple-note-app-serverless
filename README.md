@@ -255,6 +255,53 @@ Now fixing the `getAllNotes` endpoint is probably the simplest of all. We need t
 (note: when scanning the database there is a limit to how much data that is scanned and fetched. If that limit is reached, dynamoDb sends an additional parameter that works as an offset which you can use as the start point for the next scan operation)
 
 ### Optimization
+___
 
+So now all our endpoint is functional but we will explore a few optimization tactics.
 
-### Add Authorization
+1. <u> `EmptyEventLoop` latency fix </u>
+
+Since JavaScript uses `event loop` which uses `even queues` for managing asynchronous operations, whenever we are using `cb(200,send(...))` callback function to return the response, sometimes, NodeJS may not immediately call that callback function and return the response and instead, wait for the `event queue` to be empty (assuming there are some task in the `event queue`).
+
+This scenario may add latency to our lambda function. So, to remedy this we set `context.callbackWaitsForEmptyEventLoop` to false.
+
+2. <u> Keep http connection alive for reducing latency </u>
+
+In all our lambda function, we communicate with the dynamoDb using the `dynamoDb.DocumentClient` to communicate with our dynamoDb table. But behind the scene it uses, http call to the table to perform its operation. 
+
+But every time, we make a http call, a latency is added to our function during the `handshake` part of the http call in order to establish that connection.
+
+![handshake](./readmeResources/sc--005.JPG)
+
+Instead we can keep the http connection alive after using it (after some time it will shut down anyway) which allow aws to reuse the same connection sometimes(when it can) and reduce `handshake` latency.
+
+![2 ways to do this](./readmeResources/sc-006.JPG)
+
+We can either use the `environment variable` (`AWS_NODEJS_CONNECTION_REUSE_ENABLED`) to do this which is much simpler or we could use the code which would be a bit cumbersome.
+
+(Note that: we will have to add this `environment variable` to every lambda function that uses that `dynamoDb.DocumentClient` from `aws-sdk`, which is all four of them)
+
+3. <u> DynamoDB timeout problem fix </u>
+
+When we are using lambda with API gateway, we need to know:
+
+![time out of different services](./readmeResources/sc-007.JPG)
+
+- API gateway sends a timeout response to the client after `29 second`
+- So lambda though it can run up to `15 minutes` must be configured to run at most `< 29 seconds` to send a response when we are using it with api-gateway in a ***synchronous*** manner.
+
+![right time out configuration](./readmeResources/sc-008.JPG)
+
+- But dynamoDb has latency in `milliseconds`. Yet, sometimes a very small percentage (`.000-something`) of query can take several minutes. By default our `dynamoDb.DocumentClient` is configured to retry up to `10 times` in such cases and take up to `50 seconds` to get a response from the dynamoDb table.
+
+We should over ride this configuration to `3 times` maximum-retry and take `5 seconds` maximum to get a response. Otherwise, return a timeout.
+
+![dynamoDb time out configuration](./readmeResources/sc-009.JPG)
+
+For further reading, the article is pinned [here](https://seed.run/blog/how-to-fix-dynamodb-timeouts-in-serverless-application.html).
+
+Also take a look at ![this](https://docs.aws.amazon.com/sdk-for-javascript/v2/developer-guide/node-reusing-connections.html)
+
+## Add Authorization
+___
+

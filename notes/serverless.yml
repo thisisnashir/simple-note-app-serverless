@@ -12,6 +12,7 @@ functions:
   createNote:
     environment:
       NOTES_TABLE_NAME: !Ref notesTable
+      AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -25,6 +26,7 @@ functions:
   updateNote:
     environment:
       NOTES_TABLE_NAME: !Ref notesTable
+      AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -38,6 +40,7 @@ functions:
   deleteNote:
     environment:
       NOTES_TABLE_NAME: !Ref notesTable
+      AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -51,6 +54,7 @@ functions:
   getAllNotes:
     environment:
       NOTES_TABLE_NAME: !Ref notesTable
+      AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
     iamRoleStatements:
       - Effect: Allow
         Action:
