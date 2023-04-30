@@ -9,6 +9,9 @@ provider:
   region: ap-south-1
 
 functions:
+  nashir_lambda_authorizer:
+    handler: my-authorizer.authHandler
+
   createNote:
     environment:
       NOTES_TABLE_NAME: !Ref notesTable
@@ -23,6 +26,7 @@ functions:
       - http:
           method: post
           path: notes
+          authorizer: nashir_lambda_authorizer
   updateNote:
     environment:
       NOTES_TABLE_NAME: !Ref notesTable
@@ -37,6 +41,8 @@ functions:
       - http:
           method: put
           path: notes/{id}
+          authorizer: nashir_lambda_authorizer
+
   deleteNote:
     environment:
       NOTES_TABLE_NAME: !Ref notesTable
@@ -51,6 +57,8 @@ functions:
       - http:
           method: delete
           path: notes/{id}
+          authorizer: nashir_lambda_authorizer
+          
   getAllNotes:
     environment:
       NOTES_TABLE_NAME: !Ref notesTable
@@ -65,6 +73,7 @@ functions:
       - http:
           method: get
           path: notes
+          authorizer: nashir_lambda_authorizer
 
 plugins:
   - serverless-iam-roles-per-function 

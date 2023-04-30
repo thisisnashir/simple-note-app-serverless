@@ -300,8 +300,86 @@ We should over ride this configuration to `3 times` maximum-retry and take `5 se
 
 For further reading, the article is pinned [here](https://seed.run/blog/how-to-fix-dynamodb-timeouts-in-serverless-application.html).
 
-Also take a look at ![this](https://docs.aws.amazon.com/sdk-for-javascript/v2/developer-guide/node-reusing-connections.html)
+Also take a look at [this](https://docs.aws.amazon.com/sdk-for-javascript/v2/developer-guide/node-reusing-connections.html)
 
-## Add Authorization
+## Add Access Control
 ___
 
+So to block complete public access there are some measure that we can take.
+
+1. <u> Api Key </u>
+
+We can use `Api Key` for adding some sort of limitation to public access. We go to our `Api gateway` service and open the gateway for our app (`dev-notes-api`)
+
+After that, we go to `API Keys` section and create an API key. But we can not yet use it. In order to use, we first have to create a usage plan from the `Usage Plans` section and associate a `API Resource` and a deployed `Stage` for that resource. (in our usage plan, we can rate limit that would apply to our entire `API Resource` or we can apply rate limit to individual method of that `API resource` too)
+
+Next, we need to connect this usage plan to the `Api Key` we created. Now we go to our `API resource` and choose any endpoint and turn `API Key Required` to true and deploy our `API resource` to the `stage` of the above created usage plan.
+
+And that's it! Now that API endpoint of that stage can not be access without the API key. We have to send a request to that endpoint with a header `x-api-key` and the value of that api-key in order to access it. 
+
+While accessing we can also check the limit we set in the usage plan. After the limit is exceeded we won't be able to access that resource.
+
+
+Now **API key** can not be used as some sort of authorization as the limitation of it is pretty obvious. 
+Below are reason to use it:
+![Api key reason](./readmeResources/sc-010.JPG)
+
+2. <u> Lambda Authorizer </u>
+
+Now we are going to add a lambda authorizer to our application. A lambda authorizer is like any other lambda function except this is called every time when an api end point (set up with this lambda authorizer) is hit and this lambda authorizer returns a `Principal & Policy` which determines whether the lambda function associated with that api endpoint should be invoked or not.
+
+![lambda authorizer diagram](./readmeResources/sc-011.JPG)
+
+So lambda authorizer is 2 type:
+
+1. Token type
+2. Request type
+
+By default, if we do not configure anything, the lambda authorizer will be of `token` type. In this case, we have to sent the `token` in the request header as the value of `Authorization` key.
+
+Also note that, the returned policy of the lambda authorizer is cached by default for 5 minutes.
+
+So now,
+
+1. We add new file (module) `my-authorizer.js`  where we export our authorizer lambda function `authHandler`.
+
+2. We modify the `serverless.yml` file and give this function a `logical name` (`nashir_lambda_authorizer`)
+
+3. Next, for every lambda function, we created an api endpoint as the trigger/event. For each of this api-endpoint, we add an authorizer and simply mention our `logical name` of our lambda authorizer function (`nashir_lambda_authorizer`)
+
+4. Now we need to modify our lambda authorizer function to return a `authResponse` containing the principalId and the policy. For now, we will simply use dummy string `allow` or `deny` to determine a valid token. In real life, case we would actual verify something like a `jwt` token.
+
+Now the IAM policy that our lambda authorizer has to return a has a particular format. We can go to IAM service and look into any policy (`adminReadUserPolicy` in this case) and we will see the format.
+
+![IAM policy structure](./readmeResources/sc-012.JPG)
+
+That is it. If we now deploy again we should see from console (`Authorizer` section) that our lambda function is created.
+
+![console our lambda authorizer](./readmeResources/sc-013.JPG)
+
+We should also notice that each api end point now has a authorizer (our lambda authorizer)
+
+![lambda authorizer set for api end point](./readmeResources/sc-014.JPG)
+
+
+5.  Now lets make a request to the `/notes` endpoint to see all the notes and we get a response that we are not authorized.
+
+We add a header to our request with the key `Authorization` and the value `allow` and see that we are getting our responses successfully.
+
+Now if we changed the header value to `deny` we should see the **'unauthorized'** response again.
+
+But if we changed to value to anything other that `allow` or `deny` we see `message` object with `null` value. But in our code, we returned **"Error: Invalid token"** error which we should see in the CloudWatch logs for our lambda authorizer.
+
+![Invalid response in CloudWatch](./readmeResources/sc-015.JPG)
+
+7. We should note that, we can also return a `context` object in our `authResponse` from the lambda authorizer. This context object can have many useful information that our `inner` lambda function can use (like more information about the user that are fetched from the database etc.).
+
+And so, this context object is also available in our inner lambda function `event` object. Lets console log this in our `getAllNotes` lambda function and make a request to the `/notes` endpoint to see all the notes with `Authorization` header and `allow` value.
+
+Now lets see our `getAllNotes` function's log in CloudWatch to see that the context object with the dummy key **'foo'**  and dummy value **'bar'** is there along with the `PrincipalId`
+
+![Context from lambda authorizer passed to inner lambda](./readmeResources/sc-017.JPG)
+
+We also see that the policy that our lambda function returns is available in our inner function.
+
+![policy from lambda authorizer passed to inner lambda](./readmeResources/sc-016.JPG)
