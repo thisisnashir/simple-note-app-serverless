@@ -73,19 +73,19 @@ so first our `service` name and then our `stage` name and then the suffix `serve
 
 4. We see our path with the appropriate method were created and they invoke associated lambda function in a `proxy-integration` way.
 
-![proxy integration](./readmeResources/sc-001.JPG)
+![proxy integration](./readmeResources/screenshot-001.JPG)
 
 Which means, our entire request is passed to our lambda function (api-gateway is doing no filtering and passing on the entire payload like a proxy). And the lambda response is similarly passed to the client as it was without any moderation by api-gateway.
 
 5. Now although they invoke their own lambda function (createNote,deleteNote etc.) if we click on the lambda function (from the api-gateway UI), we taken to the same `handler.js` file where all the lambda function resides. 
 
-![lambda code](./readmeResources/sc-002.JPG)
+![lambda code](./readmeResources/screenshot-002.JPG)
 
 So all the lambda function are created with in the same `.js` file, like in our local machine.
 
 6. We also notice the graphical representation that the api-gateway is triggering this lambda function.
 
-![visual representation](./readmeResources/sc-003.jpg)
+![visual representation](./readmeResources/screenshot-003.jpg)
 
 ## Lets add dynamoDb table to our implementation
 ___
@@ -162,7 +162,7 @@ Lets add the `PutItem` permission now. We have to mention the resource Arn. For 
 
 (google `dynamodb cloudformation` and go to `return value` section)
 
-![Arn of our dynamoDb table](./readmeResources/sc-004.JPG)
+![Arn of our dynamoDb table](./readmeResources/screenshot-004.JPG)
 
 so our resource Arn section looks: `Resource: !GetAtt notesTable.Arn`
 
@@ -271,11 +271,11 @@ In all our lambda function, we communicate with the dynamoDb using the `dynamoDb
 
 But every time, we make a http call, a latency is added to our function during the `handshake` part of the http call in order to establish that connection.
 
-![handshake](./readmeResources/sc--005.JPG)
+![handshake](./readmeResources/screenshot--005.JPG)
 
 Instead we can keep the http connection alive after using it (after some time it will shut down anyway) which allow aws to reuse the same connection sometimes(when it can) and reduce `handshake` latency.
 
-![2 ways to do this](./readmeResources/sc-006.JPG)
+![2 ways to do this](./readmeResources/screenshot-006.JPG)
 
 We can either use the `environment variable` (`AWS_NODEJS_CONNECTION_REUSE_ENABLED`) to do this which is much simpler or we could use the code which would be a bit cumbersome.
 
@@ -285,18 +285,18 @@ We can either use the `environment variable` (`AWS_NODEJS_CONNECTION_REUSE_ENABL
 
 When we are using lambda with API gateway, we need to know:
 
-![time out of different services](./readmeResources/sc-007.JPG)
+![time out of different services](./readmeResources/screenshot-007.JPG)
 
 - API gateway sends a timeout response to the client after `29 second`
 - So lambda though it can run up to `15 minutes` must be configured to run at most `< 29 seconds` to send a response when we are using it with api-gateway in a ***synchronous*** manner.
 
-![right time out configuration](./readmeResources/sc-008.JPG)
+![right time out configuration](./readmeResources/screenshot-008.JPG)
 
 - But dynamoDb has latency in `milliseconds`. Yet, sometimes a very small percentage (`.000-something`) of query can take several minutes. By default our `dynamoDb.DocumentClient` is configured to retry up to `10 times` in such cases and take up to `50 seconds` to get a response from the dynamoDb table.
 
 We should over ride this configuration to `3 times` maximum-retry and take `5 seconds` maximum to get a response. Otherwise, return a timeout.
 
-![dynamoDb time out configuration](./readmeResources/sc-009.JPG)
+![dynamoDb time out configuration](./readmeResources/screenshot-009.JPG)
 
 For further reading, the article is pinned [here](https://seed.run/blog/how-to-fix-dynamodb-timeouts-in-serverless-application.html).
 
@@ -322,13 +322,13 @@ While accessing we can also check the limit we set in the usage plan. After the 
 
 Now **API key** can not be used as some sort of authorization as the limitation of it is pretty obvious. 
 Below are reason to use it:
-![Api key reason](./readmeResources/sc-010.JPG)
+![Api key reason](./readmeResources/screenshot-010.JPG)
 
 2. <u> Lambda Authorizer </u>
 
 Now we are going to add a lambda authorizer to our application. A lambda authorizer is like any other lambda function except this is called every time when an api end point (set up with this lambda authorizer) is hit and this lambda authorizer returns a `Principal & Policy` which determines whether the lambda function associated with that api endpoint should be invoked or not.
 
-![lambda authorizer diagram](./readmeResources/sc-011.JPG)
+![lambda authorizer diagram](./readmeResources/screenshot-011.JPG)
 
 So lambda authorizer is 2 type:
 
@@ -351,15 +351,15 @@ So now,
 
 Now the IAM policy that our lambda authorizer has to return a has a particular format. We can go to IAM service and look into any policy (`adminReadUserPolicy` in this case) and we will see the format.
 
-![IAM policy structure](./readmeResources/sc-012.JPG)
+![IAM policy structure](./readmeResources/screenshot-012.JPG)
 
 That is it. If we now deploy again we should see from console (`Authorizer` section) that our lambda function is created.
 
-![console our lambda authorizer](./readmeResources/sc-013.JPG)
+![console our lambda authorizer](./readmeResources/screenshot-013.JPG)
 
 We should also notice that each api end point now has a authorizer (our lambda authorizer)
 
-![lambda authorizer set for api end point](./readmeResources/sc-014.JPG)
+![lambda authorizer set for api end point](./readmeResources/screenshot-014.JPG)
 
 
 5.  Now lets make a request to the `/notes` endpoint to see all the notes and we get a response that we are not authorized.
@@ -370,7 +370,7 @@ Now if we changed the header value to `deny` we should see the **'unauthorized'*
 
 But if we changed to value to anything other that `allow` or `deny` we see `message` object with `null` value. But in our code, we returned **"Error: Invalid token"** error which we should see in the CloudWatch logs for our lambda authorizer.
 
-![Invalid response in CloudWatch](./readmeResources/sc-015.JPG)
+![Invalid response in CloudWatch](./readmeResources/screenshot-015.JPG)
 
 7. We should note that, we can also return a `context` object in our `authResponse` from the lambda authorizer. This context object can have many useful information that our `inner` lambda function can use (like more information about the user that are fetched from the database etc.).
 
@@ -378,8 +378,8 @@ And so, this context object is also available in our inner lambda function `even
 
 Now lets see our `getAllNotes` function's log in CloudWatch to see that the context object with the dummy key **'foo'**  and dummy value **'bar'** is there along with the `PrincipalId`
 
-![Context from lambda authorizer passed to inner lambda](./readmeResources/sc-017.JPG)
+![Context from lambda authorizer passed to inner lambda](./readmeResources/screenshot-017.JPG)
 
 We also see that the policy that our lambda function returns is available in our inner function.
 
-![policy from lambda authorizer passed to inner lambda](./readmeResources/sc-016.JPG)
+![policy from lambda authorizer passed to inner lambda](./readmeResources/screenshot-016.JPG)
