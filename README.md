@@ -307,7 +307,7 @@ ___
 
 So to block complete public access there are some measure that we can take.
 
-1. <u> Api Key </u>
+1. <u> <h3> Api Key </h3> </u>
 
 We can use `Api Key` for adding some sort of limitation to public access. We go to our `Api gateway` service and open the gateway for our app (`dev-notes-api`)
 
@@ -324,7 +324,7 @@ Now **API key** can not be used as some sort of authorization as the limitation 
 Below are reason to use it:
 ![Api key reason](./readmeResources/screenshot-010.JPG)
 
-2. <u> Lambda Authorizer </u>
+2. <u><h3> Lambda Authorizer </h3> </u>
 
 Now we are going to add a lambda authorizer to our application. A lambda authorizer is like any other lambda function except this is called every time when an api end point (set up with this lambda authorizer) is hit and this lambda authorizer returns a `Principal & Policy` which determines whether the lambda function associated with that api endpoint should be invoked or not.
 
@@ -534,5 +534,35 @@ Now instead, we set the `Authorization` header value to the `jwt` token we recei
 Now we if we visit, `CloudWatch`, in our lambda authorizer logs, we see that the payload contains the same data we had extracted using **jwt.io** above.
 
 
-3. <u> Cognito User Pool <i>authorizer</i> </u>
+3. <u> <h3> Cognito User Pool <i>authorizer</i> </h3> </u>
 
+Now aws support another type of authorizer other than lambda authorizer and that is `Cognito Authorizer`. 
+
+From console, if we just go to our `dev-notes-api` api-gateway and go to `Authorizer` section and choose to `create new authorizer`, we see the `Cognito pool` option.
+
+![cognito authorizer](./readmeResources/screenshot-022.JPG)
+
+We just have to mention our `Cognito User Pool` name here and that's it. This is much simpler if we just want to check whether a user exists in a `Cognito User Pool` and then authorize them to an endpoint.
+
+So far all our endpoint uses `Lambda Authorizer`. But lets make some changes in our `serverless.yml` file, so that the `/notes` endpoint uses `Cognito Authorizer`.
+
+First we give this `Cognito Authorizer` a name, `userPool_authorizer` and then we just mention the **arn** of the resource. Since the user pool is already created we do not need anything else.
+
+We can find the `arn` of our user pool from the top section. 
+
+Now after deploying again, we should see new  `Cognito Authorizer` in our console named `userPool_authorizer`.
+
+![cognito authorizer](./readmeResources/screenshot-023.JPG)
+
+Now the **Token Source** is same as lambda authorizer. We have to pass the token in header with the key `Authorization` and we test it with postman and find out that it works.
+
+We can go to the console and verify that we are indeed using the congito authorizer for the `/notes` get endpoint.
+
+![verify from console](./readmeResources/screenshot-024.JPG)
+
+Now if we check our `getAllNotes` lambda function's logs from `CloudWatch` we will see that inside the `event` object, the cognito authorizer has sent us all the `jwt` tokens payload information as claims.
+
+![verify from console](./readmeResources/screenshot-025.JPG)
+
+
+![Warning](./readmeResources/screenshot-026.JPG) ***WARNING:*** About User Pool Authorizer

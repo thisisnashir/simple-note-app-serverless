@@ -73,7 +73,9 @@ functions:
       - http:
           method: get
           path: notes
-          authorizer: nashir_lambda_authorizer
+          authorizer:
+            name: userPool_authorizer
+            arn: arn:aws:cognito-idp:ap-south-1:665178931424:userpool/ap-south-1_UF0U9n2W3
 
 plugins:
   - serverless-iam-roles-per-function 
