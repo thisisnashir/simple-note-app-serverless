@@ -566,3 +566,21 @@ Now if we check our `getAllNotes` lambda function's logs from `CloudWatch` we wi
 
 
 ![Warning](./readmeResources/screenshot-026.JPG) ***WARNING:*** About User Pool Authorizer
+
+One important thing to note about `Cognito User Pool Authorizer` is that it only checks whether the user is in the user pool or not. Nothing else.
+
+Lets assume the following scenario:
+
+1. We create a user pool group and attach a IAM policy to it that denies all permission to perform any action on our `dev-notes-api` api-gateway resource (policy is named `noAccess`).
+
+2. Now lets add our already created user to this group.
+
+3. Now lets try to access the `/notes` get endpoint with the authorization token. We will see that are still able to access our resource.
+
+4. But if we investigate the `getAllNotes` lambda function's logs to check the payload we received in the `jwt` token (which should be passed to the inner function in the  `event` object), we see that the group and the inherited IAM role is there but our `cognito user pool authorizer` is still allowing us to access the api-gateway.
+
+![verify from console](./readmeResources/screenshot-027.JPG)
+
+So, what should we do in case we want to block such user with `noAccess` permission ?
+
+We could use our custom lambda authorizer and handle it inside there by checking the IAM role and user group or we could also use the IAM authorizer.
