@@ -10,6 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "aws-jwt-verify": "^4.0.0",
     "aws-sdk": "^2.1363.0"
   },
   "devDependencies": {

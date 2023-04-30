@@ -383,3 +383,156 @@ Now lets see our `getAllNotes` function's log in CloudWatch to see that the cont
 We also see that the policy that our lambda function returns is available in our inner function.
 
 ![policy from lambda authorizer passed to inner lambda](./readmeResources/screenshot-016.JPG)
+
+
+<u> Using Cognito User Pool as our Identity Management System</u>
+
+As we have mentioned, in a real scenario a user would get some some `jwt` token from a ` Identity Management system` after entering their credential and then our lambda authorizer will get that token and verify it with the `Identity Management system` to determine where the user should be allowed to proceed or not.
+
+For practice, we will use `Cognito User Pool` as our `Identity Management system`.
+
+![Real life scenerio for jwt](./readmeResources/screenshot-018.JPG)
+
+We go to `Amazon Cognito` and then click on `Create User Pool` to create a new user pool for our testing.
+
+We keep most options default except for the following changes:
+
+1. We choose `User name` as `our Cognito user pool sign-in options` and tick both options for `user name requirements`
+
+![Given name required](./readmeResources/screenshot-019.JPG)
+
+2. We choose `No MFA`.
+3. We make our `Given Name` required.
+
+![Given name required](./readmeResources/screenshot-020.JPG)
+
+4. We don't add any **Custom attributes** which is optional anyway.
+
+5. For sending email to the user, we use the default `Simple Email Service` (SES) option and setup our sender email address in `FROM email address` dropdown verifying it with `Simple Email Service` (SES).
+
+6. We give our user pool a name **"MyNotesUserPoolTest"**
+
+7. From the `Hosted authentication pages` section, we select `Use the Cognito Hosted UI` for simplicity (Cognito will provide us a UI for login and sign up)
+
+8. We use the default Domain type `Use a Cognito domain` and our prefix is `https://myno****` which needs to be unique in our region (`ap-south-1`)
+
+There are fixed set of formats that are required while we are using this domain. The pattern that will be using:
+```console
+https://<your_domain>/login
+?response_type=token
+&client_id=<your_app_client_id>
+&redirect_uri=<your_callback_url>
+```
+From [this](https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pools-app-integration.html) website, you can see more details.
+
+9. The URL we are going to use is: `http://localhost:3000`, which although does not exist will help us to retrieve the token value, as we are planning to use the `Implicit Grant` flow for authentication where the token is appended in the callback URL's query parameter.
+
+In the `Advanced app client settings` settings section, we see that `OAuth 2.0 grant types` is set to be `Authorization code grant` by default. We change it to `Implicit Grant`.
+
+![scccc](./readmeResources/screenshot-021.JPG)
+
+
+Now lets enter our user pool.
+
+Now lets create a user for this user pool and test our sign-in by the following step:
+
+1. In the `Users` section, click on **Create User** to create a new user from the admin panel of cognitio with a temporary password. We also mark the email as verified for simplicity.
+
+2. From the `App integration` section, we copy the domain for the hosted UI of the congnito and paste it in a tab to log in our created user.
+
+3. But pasting it directly does not do anything since we have pass some parameter as query string for our `Implicit Grant` flow to work.
+
+The parameters are:
+
+- response_type=token
+- client_id=<your_app_client_id>
+- redirect_uri=<your_callback_url>
+
+We can get our `client_id` from the `App integration` section and our `redirect_uri` will be `http://localhost:3000` 
+
+(note that: you can not put any other URL as the `redirect_uri` as that is the URL we registered during our cognito user pool setup. If you do, you will see this error : *An error was encountered with the requested page.*)
+
+4. We pass those parameter and we see a sign-in page given to us by cognito.
+
+Now when we login using the correct credential (our username and password), we are prompted to create a new password and enter our `Given Name` as we had configured this as a required attribute (we can enter any name we like).
+
+Now after successfully entering the information we are redirected to **http://localhost:3000** with the following parameters in the URL
+
+- id_token
+- access_token
+- expires_in
+- token_type
+
+
+We see that the `token_type` is **Bearer** and `expires_in` is **3600** seconds which is 1 hour.
+The `id_token` is long string which is nothing but a `jwt` token.
+
+So we paste the `jwt` token in the [jwt.io](https://jwt.io/) website and see what information is available in the token.
+
+- From the header, we see `"alg": "RS256"` which means `RS256` algorithm is used to sign the token.
+
+- From the payload, we see that:
+```json
+{
+  "at_hash": "wuOYKA1L4T4HHuM5q9H***",
+  "sub": "c388a69******4b68432d5",
+  "email_verified": true,
+  "iss": "https://cognito-idp.ap-south-1.amazonaws.com/ap-south-1_UF0U******",
+  "cognito:username": "nashir",
+  "aud": "585124vhn0hi45p0qf6l****",
+  "event_id": "a2e46994-7901-43bf-af8b-e0a********",
+  "token_use": "id",
+  "auth_time": 1682869974,
+  "exp": 1682873574,
+  "iat": 1682869974,
+  "jti": "92976743-2871-43fd-8bd5-4a294****",
+  "email": "an***.13@gmail.com"
+}
+```
+Among bunch of information, we see that our user's `email` and `cognito:username` is included. Our user's unique id `sub` is also there. The `auth_time`,`exp`, `iat` tracks the authentication and expiration time etc.
+
+<u>Validate our Cognito provided JWT token in the lambda authorizer</u>
+
+Now we are going to modify our lambda authorizer so that, now we can verify the `jwt` token we received from cognito instead of the dummy `allow` or `deny` string in the header.
+
+There are many library that can help us with the `jwt` verification but we are gonna use `CognitoJwtVerifier` from `aws-jwt-verify` package since this is much simpler while working with aws cognito.
+
+1. First we comment out our dummy `allow` or `deny` verification code.
+2. Then we install the package by:
+```console
+npm i aws-jwt-verify
+```
+3. Then, we configure the `CognitoJwtVerifier` object with the proper settings.
+
+```javascript
+const jwtVerifier = CognitoJwtVerifier.create({
+  userPoolId: "<USER_POOL_ID>",
+  tokenUse: "id",
+  clientId: "<CLIENT_ID>"
+  })
+```
+We can find our `USER_POOL_ID` at the top of our cognito user pool and our `CLIENT_ID` from the `app integration` section. Here, `tokenUse` will be **"id"** since this is an `id token`, not an `access token`.
+
+4. Then we verify the token in a try catch block and if no exception is thrown then we send back our policy with `allow` effect like before otherwise, just like before, we return an error.
+
+We also do `console.log(JSON.stringify(payload))`, to see the payload after verifying.
+
+So now the `aws-jwt-verify` library does the following thing:
+
+- Check if the token is created by the configured user pool
+- Check if the token is expired or not
+- Also let us know of the `user group` the current user belongs to(we can add congnito users to a group if we like) which we do not need in this case.
+
+We also change the `runtime` in the `serverless.yml` file from `nodejs12.x` to `nodejs14.x` since `nodejs12.x` causes some error while working with the `aws-jwt-verify` library.
+
+Now we just deploy our app again with `sls deploy`.
+
+We check in our postman with `/notes` endpoint and see that our endpoint is returning a `message` response with `null` value even when we are attaching `Authorization` header with the value `allow`.
+
+Now instead, we set the `Authorization` header value to the `jwt` token we received above we see the response successfully. 
+
+Now we if we visit, `CloudWatch`, in our lambda authorizer logs, we see that the payload contains the same data we had extracted using **jwt.io** above.
+
+
+3. <u> Cognito User Pool <i>authorizer</i> </u>
+
