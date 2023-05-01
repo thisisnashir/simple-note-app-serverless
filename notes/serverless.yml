@@ -80,7 +80,9 @@ functions:
           authorizer:
             name: userPool_authorizer
             type: COGNITO_USER_POOLS
-            arn: !GetAtt myCognitoUserPool.Arn
+            arn: !GetAtt myCognitoUserPool.Arn # this is the working version
+            #arn: ${ssm:/notes/dev/userPoolArn} # this ssm must already be created to be used like this
+                                                # this was introduced just for practice
 
 plugins:
   - serverless-iam-roles-per-function 

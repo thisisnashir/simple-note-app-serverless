@@ -30,3 +30,11 @@ cognitoUserPoolDomain:
   Properties:
     UserPoolId: !Ref myCognitoUserPool
     Domain: my-notes-test-cog-dom
+
+# Application parameters
+userPoolIdParam:
+  Type: AWS::SSM::Parameter
+  Properties:
+    Name: /notes/dev/userPoolArn # this was introduced just for practice and not really used in our app
+    Type: String
+    Value: !GetAtt myCognitoUserPool.Arn

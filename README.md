@@ -630,4 +630,25 @@ After that, we remove the hardcoding of those 2 values and instead retrieve the 
 
 Lets deploy this stack again to see if everything is working properly and it is!
 
+![Using AWS SSM](./readmeResources/screenshot-029.JPG) ***Aws System Manager:*** Lets use aws system manger for practice
 
+We can use the parameter store from aws system manager to save and retrieve some secret token.
+
+Lets use it store our `arn` of the `cognito user pool` and then retrieve it in our `serverless.yml` file. We do not need to do it but let's try to do this way so we can have some practice regarding SSM parameter store.
+
+While creating parameter store we should remember:
+
+- The value of the key can be a string, string list or a secured string (a string that is stored after an encryption)
+
+- While creating a parameter store, it is recommended to create the key-name as a path
+
+We can read about the CloudFormation for `AWS SSM Parameter Store` from
+[here](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ssm-parameter.html)
+
+Now lets deploy this and see if the parameters are properly created and we see that it is.
+
+Next, lets use this `arn` value in our `/notes` get endpoint's authorizer so it can be guarded by that cognito user pool authorizer.
+
+We do it by this: `arn: ${ssm:/notes/dev/userPoolArn}` 
+
+***NOTE THAT:*** <u> <i> When we are accessing the parameter in this format: `${ssm:/notes/dev/userPoolArn}`, we are expecting that the parameter is already available for us to use. We can not create and use this parameter in the same deployment. So now if I change the parameter key-name and redeploy we will face an error for this reason. </i> </u>
