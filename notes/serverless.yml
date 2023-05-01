@@ -11,6 +11,9 @@ provider:
 functions:
   nashir_lambda_authorizer:
     handler: my-authorizer.authHandler
+    environment:
+      COGNITO_USERPOOL_ID: !Ref myCognitoUserPool
+      COGNITO_WEB_CLIENT_ID: !Ref myCognitoUserPoolWebClient
 
   createNote:
     environment:
@@ -27,6 +30,7 @@ functions:
           method: post
           path: notes
           authorizer: nashir_lambda_authorizer
+          
   updateNote:
     environment:
       NOTES_TABLE_NAME: !Ref notesTable
@@ -75,23 +79,12 @@ functions:
           path: notes
           authorizer:
             name: userPool_authorizer
-            arn: arn:aws:cognito-idp:ap-south-1:665178931424:userpool/ap-south-1_UF0U9n2W3
+            type: COGNITO_USER_POOLS
+            arn: !GetAtt myCognitoUserPool.Arn
 
 plugins:
   - serverless-iam-roles-per-function 
 
 # you can add CloudFormation resource templates here
 resources:
- Resources:
-   notesTable:
-     Type: AWS::DynamoDB::Table
-     Properties:
-      TableName: notesTable
-      BillingMode: PAY_PER_REQUEST
-      AttributeDefinitions:
-        - AttributeName: notesId
-          AttributeType: S
-      KeySchema:
-        - AttributeName: notesId
-          KeyType: HASH
-
+  Resources: ${file(resources.yml)}

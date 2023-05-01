@@ -584,3 +584,50 @@ Lets assume the following scenario:
 So, what should we do in case we want to block such user with `noAccess` permission ?
 
 We could use our custom lambda authorizer and handle it inside there by checking the IAM role and user group or we could also use the IAM authorizer.
+
+
+![Using CloudFormation](./readmeResources/screenshot-028.JPG) ***CLoudFormation:*** Lets add cognito user pool authorizer using CloudFormation template inside serverless framework
+
+So for best practices, we will now use serverless framework and CloudFormation template to do all the things above instead of using aws console to do our work.
+
+But first we do some refactoring. We move our CloudFormation template for our resources in a separate `resources.yml` file and then refer it inside our `serverless.yml` file, using `${file(resources.yml)}`
+
+We can google `cognito cloudformation` for getting the reference guide [here](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-cognito-userpool.html).
+
+From the template, we first add `yml` for creating the **user pool**
+After that, we need to create the **user pool web client**. Note that, we can create multiple client for the same user pool such as a client for mobile and anther client for web.
+
+From the documentation-template, we also configure our **user pool domain**. We are going to use congnito provided domain, so we only have to state the prefix of it. We name it `my-notes-test-cog-dom` (Domain names can only contain lower-case letters, numbers, and hyphens.).
+
+Both **user pool web client** and **user pool domain** requires the **user pool**'s id which we get using the `!Ref myCognitoUserPool` intrinsic function.
+
+Since we do not use custom domain, that is all we need and does not need to provide the configuration which would have been required for the custom domain.
+
+Now we deploy our code and see whether our **user pool** is created with our **user pool web client** and **user pool domain**.
+
+In our aws-console, we we visit the `Cognito` service, we see our `MyNotesUP` user pool is created in the `ap-south-1` region. Now inside this user pool, under `app integration` section, we see our cognito domain and our client is also created. So, everything is working.
+
+Now lets also remove some of the hardcoded values in our app:
+
+1. <u>Remove UserPool Authorizer's HardCoded Arn</u>
+
+So for our `/notes` get endpoint, we are using the cognito user pool authorizer but we are hardcoding the already created user pool's arn here. 
+
+Lets instead use the intrinsic function to do that: `!GetAtt myCognitoUserPool.Arn`
+
+But now we also have to specify that this authorizer is a `Cognito UserPool Authorizer`, not a lambda authorizer. 
+We do it by adding a type: `type: COGNITO_USER_POOLS`
+
+2. <u> Remove Hard Coded value from CognitoJwtVerifier Configuration </u>
+
+In our `my-authorizer` file, we configured `CognitoJwtVerifier` object with `userPoolId` and `clientId`. We hardcoded the values there. 
+
+Lets instead use a environment variable. Since this is only required for the lambda authorizer `nashir_lambda_authorizer` we can just add those environment variable at that lambda function's level.
+
+After that, we remove the hardcoding of those 2 values and instead retrieve the values from the environment using `process.env.COGNITO_USERPOOL_ID`.
+
+***NOTE THAT*** <u><i> If we need environment variable which holds value for all our lambda functions in the `serverless.yml` file, then we should specify those environment variable at the `provider` level. Anything specified at the provider level is available for all the lambda function.</i></u> 
+
+Lets deploy this stack again to see if everything is working properly and it is!
+
+

@@ -1,0 +1,32 @@
+# notes dynamoDb table
+notesTable:
+  Type: AWS::DynamoDB::Table
+  Properties:
+    TableName: notesTable
+    BillingMode: PAY_PER_REQUEST
+    AttributeDefinitions:
+      - AttributeName: notesId
+        AttributeType: S
+    KeySchema:
+      - AttributeName: notesId
+        KeyType: HASH
+
+# Cognito user pool
+myCognitoUserPool:
+  Type: AWS::Cognito::UserPool
+  Properties: 
+    UserPoolName: MyNotesUP
+
+# User pool web client
+myCognitoUserPoolWebClient:
+  Type: AWS::Cognito::UserPoolClient
+  Properties:
+    UserPoolId: !Ref myCognitoUserPool
+    ClientName: myWebClient
+
+# User pool domain
+cognitoUserPoolDomain:
+  Type: AWS::Cognito::UserPoolDomain
+  Properties:
+    UserPoolId: !Ref myCognitoUserPool
+    Domain: my-notes-test-cog-dom

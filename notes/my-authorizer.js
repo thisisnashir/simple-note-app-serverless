@@ -2,12 +2,14 @@
 
 const { CognitoJwtVerifier } = require("aws-jwt-verify");
 
-const jwtVerifier = CognitoJwtVerifier.create({
-  userPoolId: "ap-south-1_UF0U9n2W3",
-  tokenUse: "id",
-  clientId: "585124vhn0hi45p0qf6l2lndd4"
-})
+const COGNITO_USERPOOL_ID = process.env.COGNITO_USERPOOL_ID;
+const COGNITO_WEB_CLIENT_ID = process.env.COGNITO_WEB_CLIENT_ID;
 
+const jwtVerifier = CognitoJwtVerifier.create({
+  userPoolId: COGNITO_USERPOOL_ID,
+  tokenUse: "id",
+  clientId: COGNITO_WEB_CLIENT_ID
+})
 const generatePolicy = (principalId, effect, resource) => {
   let authResponse = {};
   authResponse.principalId = principalId;
