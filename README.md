@@ -652,3 +652,30 @@ Next, lets use this `arn` value in our `/notes` get endpoint's authorizer so it 
 We do it by this: `arn: ${ssm:/notes/dev/userPoolArn}` 
 
 ***NOTE THAT:*** <u> <i> When we are accessing the parameter in this format: `${ssm:/notes/dev/userPoolArn}`, we are expecting that the parameter is already available for us to use. We can not create and use this parameter in the same deployment. So now if I change the parameter key-name and redeploy we will face an error for this reason. </i> </u>
+
+
+![Using CloudFormation](./readmeResources/screenshot-028.JPG) ***CLoudFormation:*** Lets use CloudFormation for setting up further configuration of cognito user pool
+
+Okay, so now if create a new user for our `Cognito User Pool` from the admin panel and then try to log them in using the domain with the correct format and parameter:
+
+`https://<your_domain>/login?response_type=token&client_id=<your_app_client_id>&redirect_uri=<your_callback_url>`
+
+Then we receive an error. Because we only created our user pool and we did not specify a lot of its configuration like `OAuth Grant Type`  or `Allowed Callback Url` etc.
+
+From the AWS console, if we go to our user pool and then look into the `App integration` section and click on our `App client name`, we should see that those configuration are missing.
+
+So lets fix this and configure our user pool like before but using CloudFormation this time. For that, we made the following changes to our `User pool web client`:
+
+1. We add `AllowedOAuthFlows` property with `implicit` array value since we are gonna be using `Implicit` flow.
+2. We add `CallbackURLs` property with `http://localhost:3000` array value.
+3. We also add `AllowedOAuthFlowsUserPoolClient` boolean property with `true` value so that our client can follow the OAuth protocol without interruption. 
+4. Now since we are using `AllowedOAuthFlowsUserPoolClient` property, we will also have to add `AllowedOAuthScopes` property. we add the following array value to it:
+    - `phone`
+    - `email`
+    - `profile`
+    - `openid`
+5. Now finally, we add `SupportedIdentityProviders` providers with the `COGNITO` array value so that our `Hosted UI status` becomes `available`
+
+Now if we deploy our app and see the user pool's client information, we should see that our `Hosted UI status` is available and it has all the configuration we need.
+
+Now lets try to login using the properly formatted URL and data and we should be able to see the login UI and after login and resetting the password we get our `jwt` token which we can use in our postman app to send request and get the data from an authorized endpoint.

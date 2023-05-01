@@ -23,6 +23,18 @@ myCognitoUserPoolWebClient:
   Properties:
     UserPoolId: !Ref myCognitoUserPool
     ClientName: myWebClient
+    AllowedOAuthFlowsUserPoolClient: true
+    SupportedIdentityProviders:
+      - COGNITO
+    AllowedOAuthScopes:
+      - phone
+      - email
+      - profile
+      - openid
+    AllowedOAuthFlows:
+      - implicit
+    CallbackURLs:
+      - http://localhost:3000
 
 # User pool domain
 cognitoUserPoolDomain:
