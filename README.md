@@ -24,6 +24,16 @@ Now from the official [serverless](https://www.serverless.com/) website, we go t
 serverless config credentials --provider aws --key <access_key> --secret <access_secret>
 ```
 
+This will create a default aws credential for us. You can access this file by pressing `win+r` on your windows machine to open the `run` menu and entering `%USERPROFILE%\.aws\credentials` path.
+
+You can also verify that the default path is the user we just added by the following aws cli command (you need to have aws cli installed for this command)
+
+```console
+aws sts get-caller-identity
+```
+
+This should print out the username you have just added above.
+
 Now lets create a aws-nodejs serverless project from template,
 
 ```console
@@ -679,3 +689,114 @@ So lets fix this and configure our user pool like before but using CloudFormatio
 Now if we deploy our app and see the user pool's client information, we should see that our `Hosted UI status` is available and it has all the configuration we need.
 
 Now lets try to login using the properly formatted URL and data and we should be able to see the login UI and after login and resetting the password we get our `jwt` token which we can use in our postman app to send request and get the data from an authorized endpoint.
+
+## Deployment setting up multiple environments
+
+So far we have been hard coding our environment in our `serverless.yml` file (`dev` in this case). But that is not the best practice. 
+
+We can have many environment for our production: like stage,uat,production etc.
+
+And we would like to create separate resources for each of this environment. (we do not want to insert development data into production database. right?)
+
+So while creating resources we would add our environment name to our resource's name programmatically. (if we do not give our resource any name serverless would give it a default name where our stage name would be added to it but we will see how we can have more control over any resource name)
+
+### <u> Remove our current stack </u>
+
+We know if we do not give our resource any name serverless uses some parameters like the logical name of the resource and the stage name etc to create the resource name. But if we notice our dynamoDb table does not have such a name. Because we gave our dynamoDb table a hardcoded name by `TableName: notesTable`.
+
+If we had not done that, serverless would have given it a name by using the stage name, resource's logical name, service name etc.
+
+Now let's remove our resource stack before moving on. The following command simply removes all the provisioned stack by the serverless framework.
+
+```console
+sls remove
+```
+
+You can check the aws-console to verify.
+
+Important thing to note that: we can protect some resources (not all) like dynamoDb table to add `delete protection` which would protect the table from accidental delete like using the above `sls remove` command. In those cases, we would have to remove the delete protection first to remove the table.
+
+This is useful for a scenario when  we are using a production/important table and trying to clean up resources but do not want to delete the dynamoDb table with all the other resources.
+
+### <u> Adding multi-environment configuration  </u>
+
+First thing, we need to understand is `serverless` framework allows us to use variables and we use them `${<variable_name>}` like this.
+
+we make the following change to the `stage` property of the `provider` section of `serverless.yml` file.
+
+```yml
+provider:
+  ... ... 
+  stage: ${opt:stage,'dev'}
+  ... ... 
+```
+
+`opt:stage` means we are using a variable `stage` here whose value will be provided in the console.
+
+So when we are run `sls deploy --stage test` the `stage` variable will hold the value `test` and our `stage` property will have that `test` value.
+
+But what if do not provide any value and run `sls deploy` ? For that scenario, we have added a default `dev` value to our `stage` variable.
+
+Now let's make some other changes to our `serverless.yml` file, so that our other resource can have this name in their name.
+
+Note that, we can refer the `stage` property's value by `${self:provider.stage}` in our `serverless.yml` file.
+
+1. In our `resources.yml` file, we added `SSM:Parameter` for `userPoolIdParam`. We make the following change so that this resource is created based on our `stage` property.
+
+```yml
+userPoolIdParam:
+  Type: AWS::SSM::Parameter
+  Properties:
+    Name: /notes/${self:provider.stage}/userPoolArn #name change here
+    ... ...
+```
+
+2. We make similar change to our `cognitoUserPoolDomain`.
+
+```yml
+cognitoUserPoolDomain:
+  Type: AWS::Cognito::UserPoolDomain
+  Properties:
+    ... ...
+    Domain: my-notes-test-${self:provider.stage} #name change here
+```
+
+3. We also need to change our user pool `myCognitoUserPool` name.
+
+```yml
+myCognitoUserPool:
+  Type: AWS::Cognito::UserPool
+  Properties: 
+    UserPoolName: MyNotesUP-${self:provider.stage} # name change here
+```
+
+4. Also, for our dynamoDb table.
+
+```yml
+notesTable:
+  Type: AWS::DynamoDB::Table
+  Properties:
+    TableName: notesTable-${self:provider.stage} # name change here
+```
+
+5. We are not using the SSM parameter in our app. so in the `event` array of `getAllNotes` lambda function we have kept it commented out. 
+
+But if we did use it, we would have to change it to like this: 
+
+```console
+ #arn: ${ssm:/notes/${self:provider.stage}/userPoolArn}
+```
+note that, we can use double `${self:${variable_name}_stuff}` like above.
+
+Now, let's do `sls deploy` (our `dev` resources should be created.)
+
+Ok. So now we our resources are created and they all have a `dev` in their name. 
+
+![services created](./readmeResources/screenshot-030.JPG)
+
+Now lets run `sls deploy --stage demo` and we should a **NEW** stack is being created. After finishing, we can check the console to see that both our `dev` and `demo` stack resources are there.
+
+![dev and demo lambda created](./readmeResources/screenshot-031.JPG)
+
+Note that, now if we want to clean the `dev` stack we just need to run `sls remove` but to remove `demo` stack, we will have to run `sls remove --stage demo`
+
