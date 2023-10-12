@@ -4,7 +4,8 @@
   "description": "",
   "main": "handler.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "deploy": "sls deploy"
   },
   "keywords": [],
   "author": "",
@@ -14,6 +15,7 @@
     "aws-sdk": "^2.1363.0"
   },
   "devDependencies": {
+    "serverless": "^2.72.4",
     "serverless-iam-roles-per-function": "^3.2.0"
   }
 }

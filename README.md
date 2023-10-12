@@ -800,3 +800,51 @@ Now lets run `sls deploy --stage demo` and we should a **NEW** stack is being cr
 
 Note that, now if we want to clean the `dev` stack we just need to run `sls remove` but to remove `demo` stack, we will have to run `sls remove --stage demo`
 
+
+# Adding profile 
+
+so far we have been working with the default aws profile. we set it up by the `serverless config credentials` command described at the top. we can override it by the `-o` flag.
+
+```console
+serverless config credentials --provider aws -o --key <access_key> --secret <access_secret>
+```
+
+but we can also setup multiple aws profile:
+
+```console
+ aws configure --profile sls-test
+```
+
+in mac, you can check you aws credentials by,
+
+```console
+ cat .aws/credentials
+```
+
+![proxy integration](./readmeResources/screenshot-032.JPG)
+
+and you can use this `sls-test` profile in any aws cli command using the `--profile` flag:
+
+```console
+aws sts get-caller-identity —profile sls-test
+```
+
+![proxy integration](./readmeResources/screenshot-033.JPG)
+
+now using this `sls-test` profile is very simple. 
+
+we just need to add this under `provider` section for `profile` field.
+
+```yml
+provider:
+//... ... ...
+  profile: sls-test
+```
+
+now when we run, `sls deploy` , instead of using the default aws profile it will use the `sls-test` profile.
+
+also, we are adding `sls deploy` command in our `package.json` file's custom command `deploy`, so we can do `npm run deploy` to run deploy command without locally installed serverless package. 
+
+this way we no longer need to install the serverless framework globally in our local machine ( i am doing it since the serverless version i installed globally is a different version and i use that for my office project )
+
+I could also use `npx` prefix command which uses internet to perform the task. 
